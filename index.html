@@ -61,15 +61,15 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 325 px; /* 卡片寬 */
+            width: 325px; /* 卡片寬 */
             margin: 0 auto;
         }
 
         /* 卡片样式 */
         .flip-card {
-            min-width: 350 px; /* 卡片寬 */
-            height: 220 px; /* 卡片高 */
-            perspective: 1000 px;
+            min-width: 350px; /* 卡片寬 */
+            height: 220px; /* 卡片高 */
+            perspective: 1000px;
             scroll-snap-align: center;
             transform: scale(0.85);
             transition: all 0.3s ease;
@@ -505,7 +505,7 @@
             // 更新卡片状态
             function updateCardStatus(isChecked, alert, cardBack) {
                 if (isChecked) {
-                    alert.textContent = '✅ 今日已完成廚餘回收';
+                    alert.textContent = '✅ 已完成廚餘回收';
                     alert.classList.add('completed');
                     cardBack.classList.add('completed');
                 } else {
