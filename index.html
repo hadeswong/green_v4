@@ -32,6 +32,7 @@
             font-weight: 600;
         }
 
+        /* 卡片容器 */
         .cards-container {
             width: 100%;
             display: flex;
@@ -40,41 +41,46 @@
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             padding: 20px 0;
-            gap: 20px;
+            gap: 10px;
         }
 
+        /* 卡片容器 */
         .cards-container::-webkit-scrollbar {
             display: none;
         }
 
+        /* 卡片容器 */
         .cards-wrapper {
             display: flex;
-            padding: 0 calc(50% - 200px); /* 400px/2 = 200px，使卡片居中 */
-            gap: 20px;
+            padding: 0 calc(55% - 200px); /* 调整边距，基于卡片(.flip-card)新宽度380px */
+            gap: 10px; /* 减少卡片间距 */
         }
 
+        /* 卡片容器 */
         .card-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 400px;
+            width: 380px; /* 卡片寬 */
             margin: 0 auto;
         }
 
+        /* 卡片样式 */
         .flip-card {
-            min-width: 400px;
-            height: 250px;
+            min-width: 380px; /* 卡片寬 */
+            height: 230px; /* 卡片高 */
             perspective: 1000px;
             scroll-snap-align: center;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
+            transform: scale(0.85);
+            transition: all 0.3s ease;
             flex-shrink: 0;
-            margin-bottom: 10px; /* 为提示框留出空间 */
         }
 
+        /* 卡片動畫 */
         .flip-card.active {
-            transform: scale(1);
+            transform: scale(0.95);
         }
+
 
         .flip-card-inner {
             position: relative;
@@ -84,9 +90,11 @@
             transform-style: preserve-3d;
         }
 
+
         .flip-card.flipped .flip-card-inner {
             transform: rotateY(180deg);
         }
+
 
         .flip-card-front, .flip-card-back {
             position: absolute;
@@ -104,6 +112,7 @@
             align-items: center;
         }
 
+            
         .flip-card-front img {
             width: 100%;
             height: 100%;
@@ -111,8 +120,9 @@
             border-radius: 15px;
         }
 
+        /* 卡片背面 */
         .flip-card-back {
-            background-color: #ffffff;
+            background-color: #dadada;
             transform: rotateY(180deg);
             display: flex;
             flex-direction: column;
@@ -122,17 +132,19 @@
         }
 
         .flip-card-back.completed {
-            background-color: #90EE90; /* 淡绿色背景 */
+            background-color: #8ef18e; /* 淡绿色背景 */
         }
 
+        /* 會員編號 */
         .member-id {
             width: 100%;
             text-align: center;
             margin-bottom: 20px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
         }
 
+        /* 卡片內容 */
         .card-content {
             display: flex;
             justify-content: space-between;
@@ -141,6 +153,7 @@
             flex: 1;
         }
 
+        /* 卡片內容左邊 */
         .qrcode-container {
             flex: 1;
             display: flex;
@@ -148,11 +161,13 @@
             align-items: center;
         }
 
+        /* 卡片內容圖片 */
         .qrcode-container img {
             width: 120px;
             height: 120px;
         }
 
+        /* 卡片內容右邊 */
         .right-content {
             flex: 1;
             display: flex;
@@ -161,12 +176,14 @@
             gap: 15px;
         }
 
+        /* 卡片內容標題 */
         .recycle-title h2 {
             margin: 0;
-            font-size: 24px;
+            font-size: 20px;
             color: #333;
         }
 
+        /* 卡片內容開關 */
         .switch-container {
             display: flex;
             justify-content: center;
@@ -415,6 +432,52 @@
             const cards = document.querySelectorAll('.card-container');
             const navDots = document.querySelectorAll('.nav-dot');
 
+            let lastActiveIndex = 0; // 记录上一个活动卡片的索引
+
+            // 更新活动卡片
+            function updateActiveCard() {
+                const scrollPosition = cardsContainer.scrollLeft;
+                const cardWidth = cards[0].offsetWidth + 10; // 使用新的间距
+                const activeIndex = Math.round(scrollPosition / cardWidth);
+
+                if (activeIndex !== lastActiveIndex) { // 只在卡片切换时执行
+                    cards.forEach((cardContainer, index) => {
+                        const flipCard = cardContainer.querySelector('.flip-card');
+                        if (index === activeIndex) {
+                            flipCard.classList.add('active');
+                            // 添加延时以确保过渡效果顺畅
+                            setTimeout(() => {
+                                flipCard.classList.add('flipped');
+                            }, 100);
+                        } else {
+                            flipCard.classList.remove('active');
+                            flipCard.classList.remove('flipped');
+                        }
+                    });
+
+                    navDots.forEach((dot, index) => {
+                        if (index === activeIndex) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+
+                    lastActiveIndex = activeIndex;
+                }
+            }
+
+            // 使用节流函数优化滚动事件处理
+            let scrollTimeout;
+            cardsContainer.addEventListener('scroll', () => {
+                if (!scrollTimeout) {
+                    scrollTimeout = setTimeout(() => {
+                        requestAnimationFrame(updateActiveCard);
+                        scrollTimeout = null;
+                    }, 50);
+                }
+            });
+
             // 为每张卡片添加功能
             cards.forEach((cardContainer, index) => {
                 const card = cardContainer.querySelector('.flip-card');
@@ -422,9 +485,9 @@
                 const alert = cardContainer.querySelector(`#alert-${index}`);
                 const cardBack = cardContainer.querySelector('.flip-card-back');
 
-                // 卡片翻转事件
+                // 卡片点击事件
                 card.addEventListener('click', function(e) {
-                    if (!e.target.closest('.switch')) {
+                    if (this.classList.contains('active') && !e.target.closest('.switch')) {
                         this.classList.toggle('flipped');
                     }
                 });
@@ -517,39 +580,10 @@
             // 初始化自动重置
             setupAutoReset();
 
-            // 滚动相关代码
-            function updateActiveCard() {
-                const scrollPosition = cardsContainer.scrollLeft;
-                const containerWidth = cardsContainer.offsetWidth;
-                const cardWidth = cards[0].offsetWidth + 20;
-                const activeIndex = Math.round(scrollPosition / cardWidth);
-
-                cards.forEach((card, index) => {
-                    if (index === activeIndex) {
-                        card.querySelector('.flip-card').classList.add('active');
-                    } else {
-                        card.querySelector('.flip-card').classList.remove('active');
-                    }
-                });
-
-                navDots.forEach((dot, index) => {
-                    if (index === activeIndex) {
-                        dot.classList.add('active');
-                    } else {
-                        dot.classList.remove('active');
-                    }
-                });
-            }
-
-            // 监听滚动事件
-            cardsContainer.addEventListener('scroll', () => {
-                requestAnimationFrame(updateActiveCard);
-            });
-
             // 点击导航点切换卡片
             navDots.forEach((dot, index) => {
                 dot.addEventListener('click', () => {
-                    const cardWidth = cards[0].offsetWidth + 20;
+                    const cardWidth = cards[0].offsetWidth + 10; // 使用新的间距
                     cardsContainer.scrollTo({
                         left: cardWidth * index,
                         behavior: 'smooth'
@@ -564,6 +598,13 @@
                     e.preventDefault();
                 }
             }, { passive: false });
+
+            // 初始化第一张卡片
+            setTimeout(() => {
+                const firstCard = cards[0].querySelector('.flip-card');
+                firstCard.classList.add('active');
+                firstCard.classList.add('flipped');
+            }, 100);
         });
     </script>
 </body>
