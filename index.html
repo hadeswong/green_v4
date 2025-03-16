@@ -34,14 +34,19 @@
 
         /* 卡片容器 */
         .cards-container {
+            position: relative;
             width: 100%;
+            height: auto;
             display: flex;
+            align-items: center;
             overflow-x: scroll;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             padding: 20px 0;
-            gap: 10px;
+            scroll-behavior: smooth;
+            /* 防止 iOS 橡皮筋效果 */
+            overscroll-behavior-x: contain;
         }
 
         /* 卡片容器 */
@@ -52,8 +57,10 @@
         /* 卡片容器 */
         .cards-wrapper {
             display: flex;
-            padding: 0 calc(60% - 200px); /* 调整边距，基于卡片(.flip-card)新宽度380px */
-            gap: 10px; /* 减少卡片间距 */
+            padding: 0 calc(60% - 200px);
+            gap: 10px;
+            /* 确保最后一张卡片可以完全滚动到中间 */
+            padding-right: calc(50% - 160px + 10px);
         }
 
         /* 卡片容器 */
@@ -67,13 +74,15 @@
 
         /* 卡片样式 */
         .flip-card {
-            min-width: 350px; /* 卡片寬 */
-            height: 220px; /* 卡片高 */
+            min-width: 350px;
+            height: 220px;
             perspective: 1000px;
             scroll-snap-align: center;
             transform: scale(0.85);
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease;
             flex-shrink: 0;
+            /* 优化触摸体验 */
+            touch-action: pan-x pan-y;
         }
 
         /* 卡片動畫 */
@@ -432,20 +441,27 @@
             const cards = document.querySelectorAll('.card-container');
             const navDots = document.querySelectorAll('.nav-dot');
 
-            let lastActiveIndex = 0; // 记录上一个活动卡片的索引
+            let lastActiveIndex = 0;
+            let isScrolling = false;
+            let startX;
+            let scrollLeft;
 
             // 更新活动卡片
             function updateActiveCard() {
+                if (isScrolling) return;
+
                 const scrollPosition = cardsContainer.scrollLeft;
-                const cardWidth = cards[0].offsetWidth + 10; // 使用新的间距
+                const cardWidth = cards[0].offsetWidth + 10;
                 const activeIndex = Math.round(scrollPosition / cardWidth);
 
-                if (activeIndex !== lastActiveIndex) { // 只在卡片切换时执行
+                // 确保 activeIndex 在有效范围内
+                const validIndex = Math.max(0, Math.min(activeIndex, cards.length - 1));
+
+                if (validIndex !== lastActiveIndex) {
                     cards.forEach((cardContainer, index) => {
                         const flipCard = cardContainer.querySelector('.flip-card');
-                        if (index === activeIndex) {
+                        if (index === validIndex) {
                             flipCard.classList.add('active');
-                            // 添加延时以确保过渡效果顺畅
                             setTimeout(() => {
                                 flipCard.classList.add('flipped');
                             }, 100);
@@ -456,23 +472,50 @@
                     });
 
                     navDots.forEach((dot, index) => {
-                        if (index === activeIndex) {
-                            dot.classList.add('active');
-                        } else {
-                            dot.classList.remove('active');
-                        }
+                        dot.classList.toggle('active', index === validIndex);
                     });
 
-                    lastActiveIndex = activeIndex;
+                    lastActiveIndex = validIndex;
                 }
             }
 
-            // 使用节流函数优化滚动事件处理
+            // 处理触摸事件
+            cardsContainer.addEventListener('touchstart', (e) => {
+                isScrolling = true;
+                startX = e.touches[0].pageX - cardsContainer.offsetLeft;
+                scrollLeft = cardsContainer.scrollLeft;
+            }, { passive: true });
+
+            cardsContainer.addEventListener('touchmove', (e) => {
+                if (!isScrolling) return;
+
+                const x = e.touches[0].pageX - cardsContainer.offsetLeft;
+                const walk = (startX - x) * 1.5;
+                cardsContainer.scrollLeft = scrollLeft + walk;
+            }, { passive: true });
+
+            cardsContainer.addEventListener('touchend', () => {
+                isScrolling = false;
+                const cardWidth = cards[0].offsetWidth + 10;
+                const activeIndex = Math.round(cardsContainer.scrollLeft / cardWidth);
+                
+                // 滚动到最近的卡片
+                cardsContainer.scrollTo({
+                    left: cardWidth * activeIndex,
+                    behavior: 'smooth'
+                });
+
+                setTimeout(updateActiveCard, 300);
+            });
+
+            // 优化滚动事件处理
             let scrollTimeout;
             cardsContainer.addEventListener('scroll', () => {
                 if (!scrollTimeout) {
                     scrollTimeout = setTimeout(() => {
-                        requestAnimationFrame(updateActiveCard);
+                        if (!isScrolling) {
+                            requestAnimationFrame(updateActiveCard);
+                        }
                         scrollTimeout = null;
                     }, 50);
                 }
@@ -583,21 +626,13 @@
             // 点击导航点切换卡片
             navDots.forEach((dot, index) => {
                 dot.addEventListener('click', () => {
-                    const cardWidth = cards[0].offsetWidth + 10; // 使用新的间距
+                    const cardWidth = cards[0].offsetWidth + 10;
                     cardsContainer.scrollTo({
                         left: cardWidth * index,
                         behavior: 'smooth'
                     });
                 });
             });
-
-            // 防止 iOS 橡皮筋效果影响滚动体验
-            cardsContainer.addEventListener('touchmove', function(e) {
-                if (this.scrollLeft <= 0 || 
-                    this.scrollLeft >= this.scrollWidth - this.offsetWidth) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
 
             // 初始化第一张卡片
             setTimeout(() => {
