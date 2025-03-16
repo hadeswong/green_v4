@@ -40,13 +40,16 @@
             display: flex;
             align-items: center;
             overflow-x: scroll;
-            scroll-snap-type: x mandatory;
+            scroll-snap-type: none; /* 移除默认的scroll-snap */
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             padding: 20px 0;
-            scroll-behavior: smooth;
-            /* 防止 iOS 橡皮筋效果 */
-            overscroll-behavior-x: contain;
+            /* 移除默认的scroll-behavior */
+            scroll-behavior: auto;
+            /* 优化触摸体验 */
+            touch-action: pan-x;
+            /* 防止iOS橡皮筋效果 */
+            overscroll-behavior-x: none;
         }
 
         /* 卡片容器 */
@@ -57,7 +60,7 @@
         /* 卡片容器 */
         .cards-wrapper {
             display: flex;
-            padding: 0 calc(50% - 200px);
+            padding: 0 calc(50% - 185px);
             gap: 5px;
         }
 
@@ -66,7 +69,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 325px; /* 卡片寬 */
+            width: 370px; /* 卡片寬 */
             margin: 0 auto;
         }
 
@@ -75,10 +78,13 @@
             min-width: 400px;
             height: 250px;
             perspective: 1000px;
-            scroll-snap-align: center;
             transform: scale(0.85);
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease;
             flex-shrink: 0;
+            will-change: transform;
+            /* 优化性能 */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
 
         /* 卡片動畫 */
@@ -438,93 +444,122 @@
             const navDots = document.querySelectorAll('.nav-dot');
             
             let lastActiveIndex = 0;
-            let isScrolling = false;
             let startX;
-            let scrollLeft;
+            let currentX;
+            let isDragging = false;
+            let startScrollLeft;
+            let animationFrameId;
+            const cardWidth = cards[0].offsetWidth + 5;
 
             function smoothScrollToCard(index) {
-                const cardWidth = cards[0].offsetWidth + 5;
-                cardsContainer.scrollTo({
-                    left: cardWidth * index,
-                    behavior: 'smooth'
-                });
+                const targetScroll = cardWidth * index;
+                const startScroll = cardsContainer.scrollLeft;
+                const distance = targetScroll - startScroll;
+                let startTime = null;
+                const duration = 300; // 动画持续时间
+
+                function animation(currentTime) {
+                    if (startTime === null) startTime = currentTime;
+                    const timeElapsed = currentTime - startTime;
+                    const progress = Math.min(timeElapsed / duration, 1);
+                    
+                    // 使用 easeOutCubic 缓动函数使动画更自然
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    
+                    cardsContainer.scrollLeft = startScroll + (distance * easeProgress);
+
+                    if (progress < 1) {
+                        animationFrameId = requestAnimationFrame(animation);
+                    } else {
+                        updateActiveCard(index);
+                    }
+                }
+
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(animation);
             }
 
-            function getActiveIndex() {
-                const scrollPosition = cardsContainer.scrollLeft;
-                const cardWidth = cards[0].offsetWidth + 5;
-                return Math.round(scrollPosition / cardWidth);
-            }
-
-            function updateActiveCard() {
-                const activeIndex = getActiveIndex();
-                if (activeIndex !== lastActiveIndex) {
-                    cards.forEach((cardContainer, index) => {
+            function updateActiveCard(index) {
+                if (index !== lastActiveIndex) {
+                    cards.forEach((cardContainer, i) => {
                         const flipCard = cardContainer.querySelector('.flip-card');
-                        if (index === activeIndex) {
-                            flipCard.classList.add('active');
-                            // 立即翻转，移除延时
-                            flipCard.classList.add('flipped');
+                        if (i === index) {
+                            flipCard.classList.add('active', 'flipped');
                         } else {
-                            flipCard.classList.remove('active');
-                            flipCard.classList.remove('flipped');
+                            flipCard.classList.remove('active', 'flipped');
                         }
                     });
 
-                    navDots.forEach((dot, index) => {
-                        dot.classList.toggle('active', index === activeIndex);
+                    navDots.forEach((dot, i) => {
+                        dot.classList.toggle('active', i === index);
                     });
 
-                    lastActiveIndex = activeIndex;
+                    lastActiveIndex = index;
                 }
             }
 
-            // 优化滚动事件处理，减少延迟
-            let scrollTimeout;
-            cardsContainer.addEventListener('scroll', () => {
-                clearTimeout(scrollTimeout);
-                // 减少延时，使响应更快
-                scrollTimeout = setTimeout(() => {
-                    updateActiveCard();
-                }, 50);
-            });
+            function getActiveIndex() {
+                return Math.round(cardsContainer.scrollLeft / cardWidth);
+            }
 
             // 触摸事件处理
             cardsContainer.addEventListener('touchstart', (e) => {
-                isScrolling = true;
+                isDragging = true;
                 startX = e.touches[0].pageX;
-                scrollLeft = cardsContainer.scrollLeft;
+                currentX = startX;
+                startScrollLeft = cardsContainer.scrollLeft;
+                
+                // 停止任何正在进行的动画
+                cancelAnimationFrame(animationFrameId);
+                
+                cardsContainer.style.scrollBehavior = 'auto';
             }, { passive: true });
 
             cardsContainer.addEventListener('touchmove', (e) => {
-                if (!isScrolling) return;
-                const x = e.touches[0].pageX;
-                const walk = startX - x;
-                cardsContainer.scrollLeft = scrollLeft + walk;
+                if (!isDragging) return;
+                
+                currentX = e.touches[0].pageX;
+                const walk = (startX - currentX) * 1.5; // 增加滑动灵敏度
+                cardsContainer.scrollLeft = startScrollLeft + walk;
             }, { passive: true });
 
-            cardsContainer.addEventListener('touchend', () => {
-                if (!isScrolling) return;
-                isScrolling = false;
-                const currentIndex = getActiveIndex();
-                smoothScrollToCard(currentIndex);
-                // 立即更新卡片状态
-                updateActiveCard();
-            });
+            function handleTouchEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const endScrollLeft = cardsContainer.scrollLeft;
+                const deltaX = endScrollLeft - startScrollLeft;
+                
+                // 计算最接近的卡片索引
+                let targetIndex = getActiveIndex();
+                
+                // 如果滑动距离超过卡片宽度的20%，则切换到下一张或上一张
+                if (Math.abs(deltaX) > cardWidth * 0.2) {
+                    targetIndex = deltaX > 0 ? 
+                        Math.ceil(cardsContainer.scrollLeft / cardWidth) : 
+                        Math.floor(cardsContainer.scrollLeft / cardWidth);
+                }
+                
+                // 确保索引在有效范围内
+                targetIndex = Math.max(0, Math.min(targetIndex, cards.length - 1));
+                
+                // 使用自定义动画滚动到目标卡片
+                smoothScrollToCard(targetIndex);
+            }
 
-            // 点击导航点时立即更新
+            cardsContainer.addEventListener('touchend', handleTouchEnd);
+            cardsContainer.addEventListener('touchcancel', handleTouchEnd);
+
+            // 导航点点击事件
             navDots.forEach((dot, index) => {
                 dot.addEventListener('click', () => {
                     smoothScrollToCard(index);
-                    // 立即更新卡片状态
-                    updateActiveCard();
                 });
             });
 
             // 初始化第一张卡片
             const firstCard = cards[0].querySelector('.flip-card');
-            firstCard.classList.add('active');
-            firstCard.classList.add('flipped');
+            firstCard.classList.add('active', 'flipped');
 
             // 为每张卡片添加功能
             cards.forEach((cardContainer, index) => {
