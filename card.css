@@ -55,7 +55,7 @@ h1 {
     width: 100%;
     max-width: 400px;
     margin: 0 auto;
-    padding: 0 ;
+    padding: 0 10px;
     box-sizing: border-box;
     overflow-y: auto;
     padding-bottom: calc(20px + var(--sab));
@@ -132,7 +132,7 @@ h1 {
 
 /* 绿卡QRCODE 容器 */
 .green-card-container {
-    width: 380px;
+    width: 350px;
     height: 220px;
     position: relative;
     margin: 0 auto;
