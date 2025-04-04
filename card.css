@@ -53,9 +53,9 @@ h1 {
 .cards-container {
     position: relative;
     width: 100%;
-    max-width: 450px;
+    max-width: 420px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 ;
     box-sizing: border-box;
     overflow-y: auto;
     padding-bottom: calc(20px + var(--sab));
@@ -67,7 +67,7 @@ h1 {
 /* 每張卡片頁 */
 .card-container {
     width: 100%;
-    margin: 0 auto;
+    margin: 0;
     background: #ffffff;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -127,12 +127,12 @@ h1 {
 
 .card-content-wrapper.expanded {
     max-height: none;
-    padding: 15px;
+    padding: 10px;
 }
 
 /* 绿卡QRCODE 容器 */
 .green-card-container {
-    width: 350px;
+    width: 380px;
     height: 220px;
     position: relative;
     margin: 0 auto;
@@ -147,8 +147,8 @@ h1 {
 }
 
 .green-card-container .qrcode-container {
-    width: 170px;
-    height: 170px;
+    width: 180px;
+    height: 180px;
     flex-shrink: 0;
     display: flex;
     justify-content: center;
