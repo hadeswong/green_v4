@@ -30,12 +30,13 @@ class CardSlider {
     }
 
     initializeCardFeatures() {
-        this.cards.forEach((cardContainer, index) => {
+        this.cards.forEach((cardContainer) => {
             const header = cardContainer.querySelector('.member-header');
             const contentWrapper = cardContainer.querySelector('.card-content-wrapper');
-            const recycleCheck = cardContainer.querySelector(`#recycleCheck-${index}`);
-            const alert = cardContainer.querySelector(`#alert-${index}`);
+            const recycleCheck = cardContainer.querySelector('.recycleCheck');
+            const alert = cardContainer.querySelector('.alert');
             const greenCard = cardContainer.querySelector('.green-card-container');
+            const memberId = header.getAttribute('data-member-id');
 
             // 點擊 header 時展開/收起內容
             header.addEventListener('click', (e) => {
@@ -64,10 +65,10 @@ class CardSlider {
             recycleCheck.addEventListener('change', (e) => {
                 e.stopPropagation(); // 防止觸發卡片的點擊事件
                 this.updateCardStatus(recycleCheck.checked, alert, greenCard);
-                this.saveCardStatus(index, recycleCheck.checked);
+                this.saveCardStatus(memberId, recycleCheck.checked);
             });
 
-            this.initializeCardStatus(index, recycleCheck, alert, greenCard);
+            this.initializeCardStatus(memberId, recycleCheck, alert, greenCard);
         });
     }
 
@@ -86,22 +87,22 @@ class CardSlider {
     }
 
     // 保存卡片狀態
-    saveCardStatus(index, status) {
+    saveCardStatus(memberId, status) {
         const today = new Date().toLocaleDateString();
-        localStorage.setItem(`recycleStatus-${index}`, status);
-        localStorage.setItem(`recycleDate-${index}`, today);
+        localStorage.setItem(`recycleStatus-${memberId}`, status);
+        localStorage.setItem(`recycleDate-${memberId}`, today);
     }
 
     // 初始化卡片狀態
-    initializeCardStatus(index, recycleCheck, alert, greenCard) {
+    initializeCardStatus(memberId, recycleCheck, alert, greenCard) {
         const today = new Date().toLocaleDateString();
-        const savedDate = localStorage.getItem(`recycleDate-${index}`);
-        const savedStatus = localStorage.getItem(`recycleStatus-${index}`);
+        const savedDate = localStorage.getItem(`recycleDate-${memberId}`);
+        const savedStatus = localStorage.getItem(`recycleStatus-${memberId}`);
 
         if (savedDate !== today) {
             recycleCheck.checked = false;
             this.updateCardStatus(false, alert, greenCard);
-            this.saveCardStatus(index, false);
+            this.saveCardStatus(memberId, false);
         } else {
             const status = savedStatus === 'true';
             recycleCheck.checked = status;
@@ -111,14 +112,15 @@ class CardSlider {
 
     // 重置所有卡片
     resetAllCards() {
-        this.cards.forEach((card, index) => {
-            const recycleCheck = card.querySelector(`#recycleCheck-${index}`);
-            const alert = card.querySelector(`#alert-${index}`);
+        this.cards.forEach((card) => {
+            const memberId = card.querySelector('.member-header').getAttribute('data-member-id');
+            const recycleCheck = card.querySelector('.recycleCheck');
+            const alert = card.querySelector('.alert');
             const greenCard = card.querySelector('.green-card-container');
             
             recycleCheck.checked = false;
             this.updateCardStatus(false, alert, greenCard);
-            this.saveCardStatus(index, false);
+            this.saveCardStatus(memberId, false);
         });
     }
 
@@ -133,7 +135,6 @@ class CardSlider {
                 localStorage.setItem('lastResetDate', today);
             }
         };
-
         checkDate();
         setInterval(checkDate, 60000);
     }

@@ -146,6 +146,17 @@ h1 {
     box-sizing: border-box;
 }
 
+.card-type {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    padding: 0px;
+    border-radius: 0px;
+    font-size: 12px;
+    color: #777777;
+    z-index: 1;
+}
+
 .green-card-container .qrcode-container {
     width: 180px;
     height: 180px;
